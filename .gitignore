@@ -6,3 +6,7 @@ test.py
 *.apk
 *.apkm
 bins/
+.base_apk/
+morphe-temporary-files/
+output_apks/
+main_manual.py
