@@ -1,28 +1,34 @@
-# Twitter APK (Piko Patches) - Enhanced Builder
+# Twitter/X APK (Piko Patches) - Enhanced Builder
 
 [![Build Status](https://github.com/monsivamon/twitter-apk/actions/workflows/build.yaml/badge.svg)](https://github.com/monsivamon/twitter-apk/actions)
-[![Latest Release](https://img.shields.io/github/v/release/monsivamon/twitter-apk)](https://github.com/monsivamon/twitter-apk/releases/latest)
+[![Stable Release](https://img.shields.io/github/v/release/monsivamon/twitter-apk?label=Stable&color=success)](https://github.com/monsivamon/twitter-apk/releases/latest)
+[![Pre-Release](https://img.shields.io/github/v/release/monsivamon/twitter-apk?include_prereleases&label=Pre-Release&color=orange)](https://github.com/monsivamon/twitter-apk/releases)
 
-Automated build system for applying [Piko](https://github.com/crimera/piko) patches to the Twitter/X Android app.
-This repository is an enhanced fork optimized for faster updates and modern tooling.
+Automated build system for applying [Piko](https://github.com/crimera/piko) patches to Twitter/X .
+This repository is an enhanced fork optimized for faster updates, dynamic version targeting, and modern tooling.
 
 ## ✨ Key Features & Improvements
 
 ### 1. Always Latest Patches
-Even if the Twitter APK version hasn't changed, the system detects updates to **Piko patches** and rebuilds automatically.
+Even if the base APK version hasn't changed, the system detects updates to **Piko patches** and rebuilds automatically.
 
-### 2. Pre-release Patch Support
-Includes support for Piko `pre-release` patches to get the latest features faster.
+### 2. Stable & Pre-release Support
+Fully tracks and supports both stable (`main`) and pre-release (`dev`) branches of Piko patches simultaneously.
 
-### 3. Powered by Morphe CLI
-The build pipeline has been fully migrated to **Morphe CLI**. Legacy ReVanced CLI is no longer used.
+### 3. Powered by Morphe CLI & Sniper Mode
+The build pipeline has been fully migrated to **Morphe CLI**. It dynamically extracts supported versions from the patch configuration JSON and fetches the exact base APK automatically.
 
 ### 4. Daily Automation
 Checks for updates every day at **16:00 JST**.
 
 ## 📥 Download
 
-Get the latest pre-built APK from the **[Releases Page](https://github.com/monsivamon/twitter-apk/releases)**.
+Choose the version that best suits your needs:
+
+* **[🌟 Stable Version (Recommended)](https://github.com/monsivamon/twitter-apk/releases/latest)**
+    * Built with Piko's `main` branch. Safe and stable for daily use.
+* **[🧪 Pre-release Version (Beta)](https://github.com/monsivamon/twitter-apk/releases)**
+    * Built with Piko's `dev` branch. Try out the newest experimental features! *(Look for the `Pre-release` label in the list).*
 
 ## Credits
 

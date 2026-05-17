@@ -156,7 +156,7 @@ def patch_apk(
         shutil.move(cli_output, out)
 
 # GitHubリリースを作成または上書きする
-def publish_release(tag: str, files: list[str], message: str, title = ""):
+def publish_release(tag: str, files: list[str], message: str, title: str = "", is_prerelease: bool = False):
     key = os.environ.get("GITHUB_TOKEN")
     if key is None:
         raise Exception("GITHUB_TOKEN is not set")
@@ -188,7 +188,13 @@ def publish_release(tag: str, files: list[str], message: str, title = ""):
         subprocess.run(api_cmd, env=os.environ.copy()).check_returncode()
         print("Old release & tag removed. Recreating fresh release...")
 
-    command = ["gh", "release", "create", "--latest", tag, "--notes", message, "--title", title]
+    # is_prerelease フラグに応じて --prerelease または --latest を付与
+    command = ["gh", "release", "create", tag, "--notes", message, "--title", title]
+    if is_prerelease:
+        command.append("--prerelease")
+    else:
+        command.append("--latest")
+        
     command.extend(files)
 
     subprocess.run(command, env=os.environ.copy()).check_returncode()
