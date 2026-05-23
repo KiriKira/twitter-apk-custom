@@ -5,8 +5,5 @@ test.py
 # --- 以下を追加（自動生成される巨大ファイルやツールを無視） ---
 *.apk
 *.apkm
-bins/
 .base_apk/
-morphe-temporary-files/
 output_apks/
-main_manual.py
