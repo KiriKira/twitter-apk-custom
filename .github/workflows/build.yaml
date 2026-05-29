@@ -2,8 +2,6 @@ name: Release
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 7 * * *"  # 毎日 16:00 JST に実行
 
 permissions:
   contents: write

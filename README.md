@@ -1,29 +1,46 @@
-# Twitter/X APK (Piko Patches) - Enhanced Builder
+# Twitter/X & Instagram APK (Piko Patches) - Local Builder
 
-[![Build Status](https://github.com/monsivamon/twitter-apk/actions/workflows/build.yaml/badge.svg)](https://github.com/monsivamon/twitter-apk/actions)
 [![Stable Release](https://img.shields.io/github/v/release/monsivamon/twitter-apk?label=Stable&color=success)](https://github.com/monsivamon/twitter-apk/releases/latest)
 [![Pre-Release](https://img.shields.io/github/v/release/monsivamon/twitter-apk?include_prereleases&label=Pre-Release&color=orange)](https://github.com/monsivamon/twitter-apk/releases)
 
-Automated build system for applying [Piko](https://github.com/crimera/piko) patches to Twitter/X .
-This repository is an enhanced fork optimized for faster updates, dynamic version targeting, and modern tooling.
+A Python-based local build system for applying [Piko](https://github.com/crimera/piko) patches to Twitter/X and Instagram. 
+Due to upstream tooling changes and stability requirements, this project has transitioned from an automated CI pipeline to a **reliable manual/local builder**.
 
-## ✨ Key Features & Improvements
+## 📦 About Releases
+APKs available on the Releases page of this repository are manually updated and uploaded by the author (monsivamon) by running `main_manual.py` on their local machine. Automated updates via GitHub Actions (CI) are currently suspended.
 
-### 1. Always Latest Patches
-Even if the base APK version hasn't changed, the system detects updates to **Piko patches** and rebuilds automatically.
+## 🛠️ How to Build Locally (and Upload to Your Repo)
 
-### 2. Stable & Pre-release Support
-Fully tracks and supports both stable (`main`) and pre-release (`dev`) branches of Piko patches simultaneously.
+If you want to apply patches and build on your own local machine, and **upload the release to your own repository**, please follow the steps below.
 
-### 3. Powered by Morphe CLI & Sniper Mode
-The build pipeline has been fully migrated to **Morphe CLI**. It dynamically extracts supported versions from the patch configuration JSON and fetches the exact base APK automatically.
+### Prerequisites
+* **Windows OS** (This script is intended and optimized for Windows environments).
+* **Python 3.x** installed.
+* **Java (JDK 17 or 21)** installed and added to your system's `PATH`.
+* **GitHub CLI (`gh`)** installed and authenticated (`gh auth login`) with **your own account**.
+* A valid **PKCS12 format** keystore file named **`ks_pkcs12.keystore`** placed in the root directory.
+* **`apksigner`** (from Android SDK Build-Tools) installed and accessible in your `PATH` (used for reliably signing massive APKs like Instagram).
 
-### 4. Daily Automation
-Checks for updates every day at **16:00 JST**.
+### ⚠️ Important Note (Script Modification)
+Even if you are authenticated with the GitHub CLI, if the repository settings in the script remain as `monsivamon/twitter-apk`, the release upload will fail with a permission error.
+**Before running the build, you MUST change the repository name in `main_manual.py` (e.g., `repo_url = "monsivamon/twitter-apk"`) to your own repository name.**
+
+### Usage
+1. Fork this repository to your own account, or clone it locally.
+2. **Modify the repository settings in the script to your own, as described in the "Important Note" above.**
+3. Create a folder named `.base_apk` in the root directory.
+4. Place your unpatched Twitter/X or Instagram APKs (or `.apkm` bundles) inside the `.base_apk` folder.
+5. Open Command Prompt or PowerShell and run the builder script:
+
+   ```cmd
+   python main_manual.py
+   ```
+
+6. Choose your target branch (Stable/Pre-release) when prompted. The script will automatically handle merging, patching, signing (using `apksigner` and your `ks_pkcs12.keystore`), and creating/uploading the release to your own repository.
 
 ## 📥 Download
 
-Choose the version that best suits your needs:
+If you just want the pre-built APKs, choose the version that best suits your needs:
 
 * **[🌟 Stable Version (Recommended)](https://github.com/monsivamon/twitter-apk/releases/latest)**
     * Built with Piko's `main` branch. Safe and stable for daily use.
@@ -33,5 +50,6 @@ Choose the version that best suits your needs:
 ## Credits
 
 * [crimera/piko](https://github.com/crimera/piko) - The patch source.
-* [MorpheApp/morphe-cli](https://github.com/MorpheApp/morphe-cli) - Morphe CLI.
+* [MorpheApp/morphe-cli](https://github.com/MorpheApp/morphe-cli) - Morphe CLI patcher.
 * [REAndroid/APKEditor](https://github.com/REAndroid/APKEditor) - APK merging tool.
+* [Android SDK build-tools (apksigner)](https://developer.android.com/studio/command-line/apksigner) - Reliable APK signing tool for massive files.
