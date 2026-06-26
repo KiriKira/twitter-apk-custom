@@ -7,3 +7,4 @@ test.py
 *.apkm
 .base_apk/
 output_apks/
+bins/
