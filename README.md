@@ -23,20 +23,21 @@ If you want to apply patches and build on your own local machine, and **upload t
 
 ### ⚠️ Important Note (Script Modification)
 Even if you are authenticated with the GitHub CLI, if the repository settings in the script remain as `monsivamon/twitter-apk`, the release upload will fail with a permission error.
-**Before running the build, you MUST change the repository name in `main_manual.py` (e.g., `repo_url = "monsivamon/twitter-apk"`) to your own repository name.**
+**Before running the build, you MUST change the repository name in `main_manual.py` (e.g., `GITHUB_REPO = "monsivamon/twitter-apk"`) to your own repository name.**
 
 ### Usage
 1. Fork this repository to your own account, or clone it locally.
-2. **Modify the repository settings in the script to your own, as described in the "Important Note" above.**
+2. **Modify the repository settings in the script to your own, as described in the "Important Note" above.** *(Change `GITHUB_REPO = "monsivamon/twitter-apk"`)*
 3. Create a folder named `.base_apk` in the root directory.
 4. Place your unpatched Twitter/X or Instagram APKs (or `.apkm` bundles) inside the `.base_apk` folder.
 5. Open Command Prompt or PowerShell and run the builder script:
 
-   ```cmd
-   python main_manual.py
-   ```
+```cmd
+python main_manual.py
+```
 
-6. Choose your target branch (Stable/Pre-release) when prompted. The script will automatically handle merging, patching, signing (using `apksigner` and your `ks_pkcs12.keystore`), and creating/uploading the release to your own repository.
+6. **Choose your desired execution mode from the interactive menu (e.g., `[1] Full Build`, `[4] Upload Only`).**
+7. Choose your target branch (Stable/Pre-release) when prompted. The script will automatically handle merging, shim application (if necessary), patching, signing (using `apksigner` and your `ks_pkcs12.keystore`), and creating/uploading the release to your own repository.
 
 ## 📥 Download
 
@@ -50,6 +51,7 @@ If you just want the pre-built APKs, choose the version that best suits your nee
 ## Credits
 
 * [crimera/piko](https://github.com/crimera/piko) - The patch source.
+* [inotia00/x-shim](https://gitlab.com/inotia00/x-shim) - Piko compatibility shim for newer X versions.
 * [MorpheApp/morphe-cli](https://github.com/MorpheApp/morphe-cli) - Morphe CLI patcher.
 * [REAndroid/APKEditor](https://github.com/REAndroid/APKEditor) - APK merging tool.
 * [Android SDK build-tools (apksigner)](https://developer.android.com/studio/command-line/apksigner) - Reliable APK signing tool for massive files.
