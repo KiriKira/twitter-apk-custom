@@ -9,6 +9,11 @@ import sys
 import time
 import zipfile
 
+# ---------------------------------------------------
+# Javaのメモリ不足エラー（OOM）対策として最大ヒープメモリを4GBに拡張
+os.environ["_JAVA_OPTIONS"] = "-Xmx4g"
+# ---------------------------------------------------
+
 # =====================================================================
 #  GitHubリポジトリの構成設定（ビルド成果物の展開先）
 # =====================================================================
@@ -25,6 +30,14 @@ APKSIGNER_PATH = None
 
 # システムのPATH環境変数にJavaが存在するか検証し、未検出の場合は既知のディレクトリを走査して追加する。
 def ensure_java_in_path():
+    # --- 【追加】無効な JAVA_HOME が設定されている場合は削除して無視する ---
+    java_home = os.environ.get("JAVA_HOME")
+    if java_home and not os.path.exists(java_home):
+        print(f"  -> [WARNING] Invalid JAVA_HOME detected: {java_home}")
+        print(f"  -> [WARNING] Unsetting JAVA_HOME for this session to prevent apksigner crashes.")
+        del os.environ["JAVA_HOME"]
+    # -----------------------------------------------------------------------
+
     if shutil.which("java"):
         print("  -> [DEBUG] Java is already in system PATH.")
         return
@@ -726,7 +739,9 @@ def main():
                 ]
                 res = subprocess.run(cmd, capture_output=True, text=True)
                 if res.returncode != 0:
-                    print(f"     [ERROR] apksigner failed:\n{res.stderr}")
+                    print(f"     [ERROR] apksigner failed!")
+                    print(f"     [STDERR] {res.stderr}")
+                    print(f"     [STDOUT] {res.stdout}")
                     sys.exit(1)
                 
                 os.replace(temp_signed, apk_path)
