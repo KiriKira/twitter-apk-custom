@@ -30,7 +30,7 @@ APKSIGNER_PATH = None
 
 # システムのPATH環境変数にJavaが存在するか検証し、未検出の場合は既知のディレクトリを走査して追加する。
 def ensure_java_in_path():
-    # --- 【追加】無効な JAVA_HOME が設定されている場合は削除して無視する ---
+    # --- 無効な JAVA_HOME が設定されている場合は削除して無視する ---
     java_home = os.environ.get("JAVA_HOME")
     if java_home and not os.path.exists(java_home):
         print(f"  -> [WARNING] Invalid JAVA_HOME detected: {java_home}")
@@ -115,6 +115,21 @@ def is_version_greater_than(ver_str: str, target: str) -> bool:
             t = t_parts[i] if i < len(t_parts) else 0
             if v > t: return True
             if v < t: return False
+        return False
+    except Exception:
+        return False
+
+# 指定されたバージョン文字列が、対象バージョン未満かを判定する関数
+def is_version_less_than(ver_str: str, target: str) -> bool:
+    try:
+        clean_ver = ver_str.split('-')[0]
+        v_parts = [int(x) for x in clean_ver.split('.') if x.isdigit()]
+        t_parts = [int(x) for x in target.split('.') if x.isdigit()]
+        for i in range(max(len(v_parts), len(t_parts))):
+            v = v_parts[i] if i < len(v_parts) else 0
+            t = t_parts[i] if i < len(t_parts) else 0
+            if v < t: return True
+            if v > t: return False
         return False
     except Exception:
         return False
@@ -580,8 +595,8 @@ def main():
                 if os.path.exists(target_merged):
                     
                     # =============== 中間パッチ（Shim）適用シーケンス ===============
-                    if is_version_greater_than(version_str, "11.88"):
-                        print(f"  -> [INFO] Twitter v{version_str} is > 11.88. Applying x-shim first...")
+                    if is_version_greater_than(version_str, "11.88") and is_version_less_than(version_str, "12.5"):
+                        print(f"  -> [INFO] Twitter v{version_str} requires x-shim (11.88 < v < 12.5). Applying x-shim first...")
                         shim_mpp = fetch_x_shim()
                         if shim_mpp:
                             target_merged = apply_shim(cli_jar, shim_mpp, target_merged)
