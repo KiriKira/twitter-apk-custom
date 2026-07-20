@@ -7,7 +7,6 @@ import glob
 import subprocess
 import sys
 import time
-import zipfile
 
 # ---------------------------------------------------
 # Javaのメモリ不足エラー（OOM）対策として最大ヒープメモリを4GBに拡張
@@ -28,15 +27,12 @@ APKSIGNER_PATH = None
 #  実行環境の依存関係解決処理（Javaおよびapksignerのパス環境変数への追加）
 # =====================================================================
 
-# システムのPATH環境変数にJavaが存在するか検証し、未検出の場合は既知のディレクトリを走査して追加する。
 def ensure_java_in_path():
-    # --- 無効な JAVA_HOME が設定されている場合は削除して無視する ---
     java_home = os.environ.get("JAVA_HOME")
     if java_home and not os.path.exists(java_home):
         print(f"  -> [WARNING] Invalid JAVA_HOME detected: {java_home}")
         print(f"  -> [WARNING] Unsetting JAVA_HOME for this session to prevent apksigner crashes.")
         del os.environ["JAVA_HOME"]
-    # -----------------------------------------------------------------------
 
     if shutil.which("java"):
         print("  -> [DEBUG] Java is already in system PATH.")
@@ -59,7 +55,6 @@ def ensure_java_in_path():
 
 ensure_java_in_path()
 
-# apksignerの可用性を検証し、未検出の場合はローカルのAndroid SDKディレクトリ内を走査する。
 def ensure_apksigner_in_path():
     global APKSIGNER_PATH
     existing = shutil.which("apksigner")
@@ -83,7 +78,7 @@ def ensure_apksigner_in_path():
 
 ensure_apksigner_in_path()
 
-# subprocess.run関数のオーバーライドによる、標準出力のエンコーディング例外の回避処理
+# subprocess.runのエンコード問題回避パッチ
 original_run = subprocess.run
 def patched_run(*args, **kwargs):
     if kwargs.get("text") is True or kwargs.get("capture_output") is True:
@@ -104,7 +99,6 @@ BASE_APK_DIR = ".base_apk"
 OUTPUT_DIR = "output_apks"
 BINS_DIR = "bins"
 
-# 指定されたバージョン文字列が、対象バージョンを超過しているかを判定する関数
 def is_version_greater_than(ver_str: str, target: str) -> bool:
     try:
         clean_ver = ver_str.split('-')[0]
@@ -119,7 +113,6 @@ def is_version_greater_than(ver_str: str, target: str) -> bool:
     except Exception:
         return False
 
-# 指定されたバージョン文字列が、対象バージョン未満かを判定する関数
 def is_version_less_than(ver_str: str, target: str) -> bool:
     try:
         clean_ver = ver_str.split('-')[0]
@@ -134,7 +127,6 @@ def is_version_less_than(ver_str: str, target: str) -> bool:
     except Exception:
         return False
 
-# リモートリポジトリ（Piko）より、最新のリリースタグ情報を取得する処理
 def get_latest_piko_tag(is_pre: bool) -> str:
     print("  -> Fetching latest Piko release info from GitHub...")
     url = "https://api.github.com/repos/crimera/piko/releases"
@@ -150,7 +142,6 @@ def get_latest_piko_tag(is_pre: bool) -> str:
         print(f"  -> [WARNING] Failed to fetch latest release tag: {e}. Falling back to v1.0.0.")
         return "v1.0.0"
 
-# GitLabリポジトリより、中間パッチモジュール（x-shim）を取得する関数
 def fetch_x_shim():
     shim_path = os.path.join(BINS_DIR, "x-shim.mpp")
     if os.path.exists(shim_path):
@@ -186,7 +177,6 @@ def fetch_x_shim():
         print(f"  -> [WARNING] Failed to fetch x-shim: {e}")
         return None
 
-# 取得したx-shimを中間パッチとして対象APKに適用する関数
 def apply_shim(cli_jar, shim_mpp, input_apk):
     output_apk = input_apk.replace(".apk", "_shimmed.apk")
     print(f"\n  -> Applying x-shim patch to {input_apk}...")
@@ -225,7 +215,6 @@ def apply_shim(cli_jar, shim_mpp, input_apk):
     print("  -> [FATAL ERROR] Could not find shimmed APK output.")
     sys.exit(1)
 
-# 対象GitHubリポジトリより、直近のリリース履歴を取得する（取得上限: limit件）
 def get_recent_github_releases(repo_name: str, limit: int = 10) -> list:
     print(f"  -> Fetching recent releases from {repo_name}...")
     cmd = ["gh", "api", f"repos/{repo_name}/releases?per_page={limit}"]
@@ -238,7 +227,6 @@ def get_recent_github_releases(repo_name: str, limit: int = 10) -> list:
         print(f"  -> [WARNING] Failed to fetch releases from {repo_name}: {e}")
         return []
 
-# 対象ファイル名より、正規表現を用いてバージョン情報を抽出する処理
 def extract_version_from_filename(filename: str) -> str:
     match = re.search(r'(\d+\.\d+\.\d+[-a-zA-Z0-9.]*)', filename)
     if match:
@@ -252,9 +240,6 @@ def extract_version_from_filename(filename: str) -> str:
     print(f"  -> [DEBUG] Could not extract version from '{filename}'. Using 'local'.")
     return "local"
 
-# =====================================================================
-#  CLIツールの標準出力を解析し、指定パッケージに適用可能なパッチ群のリストを生成する共通処理
-# =====================================================================
 def get_target_patches(cli_path: str, mpp_path: str, target_package: str, excludes: list | None = None) -> list:
     if excludes is None:
         excludes = []
@@ -311,7 +296,6 @@ def get_target_patches(cli_path: str, mpp_path: str, target_package: str, exclud
 
     return applicable_patches
 
-# 指定された条件に基づき、作業ディレクトリ内の不要な一時ファイルおよびディレクトリを削除する処理
 def cleanup_workspace(clean_bins=False, clean_outputs=False):
     print("\n[CLEANUP] Removing temporary files...")
 
@@ -323,7 +307,7 @@ def cleanup_workspace(clean_bins=False, clean_outputs=False):
         "big_file*",
         "insta_base*",
         "temp.jks",
-        os.path.join(OUTPUT_DIR, "*.idsig")  # 念のための.idsigクリーンアップ
+        os.path.join(OUTPUT_DIR, "*.idsig")
     ]
     if clean_bins:
         targets.append(BINS_DIR)
@@ -351,7 +335,6 @@ def cleanup_workspace(clean_bins=False, clean_outputs=False):
         
     print("  -> Workspace clean.")
 
-# 指定されたGitHubリポジトリに対するアクセス権限および到達性を検証する処理
 def check_github_repo_access(repo_name):
     print("\n[PRE-CHECK] Verifying GitHub repository access...")
     if not repo_name or "ここ" in repo_name:
@@ -368,7 +351,6 @@ def check_github_repo_access(repo_name):
     print("  -> [SUCCESS] Repository access confirmed.")
     return True
 
-# GitHub上に新規リリースを作成し、ビルド済みのAPKファイルをアップロードする処理
 def upload_to_github_release(piko_tag, file_paths, is_pre, exact_tag=False):
     if not file_paths:
         print("  -> [INFO] No built files to upload.")
@@ -415,7 +397,6 @@ def upload_to_github_release(piko_tag, file_paths, is_pre, exact_tag=False):
     else:
         print(f"  -> [SUCCESS] Created new GitHub Release {tag} and uploaded assets.")
 
-# Morphe CLIを呼び出してパッチ適用処理を実行し、生成されたAPKを指定の出力ディレクトリへ移動する（署名処理は当スコープ外とする）
 def run_morphe_and_extract(cli_jar, patch_mpp, input_apk, output_apk_name, includes, excludes):
     cmd = [
         "java", "-jar", cli_jar, "patch",
@@ -465,12 +446,10 @@ def main():
     print(" PIKO AUTOMATED LOCAL BUILDER")
     print("=======================================================\n")
 
-    # GitHubリポジトリのアクセス権を事前確認
     if not check_github_repo_access(GITHUB_REPO):
         print("\n[!] Pre-check failed. Aborting build process.")
         return
 
-    # 実行モードの選択プロンプト
     print("Select start point:")
     print("  [1] Full Build   (Clean ALL, Download tools, Build, Sign)")
     print("  [2] Build & Sign (Keep existing tools in 'bins', Build, Sign)")
@@ -486,7 +465,6 @@ def main():
     piko_tag = "v1.0.0"
     target_upload_tag = ""
 
-    # 選択された実行モードに応じた、追加パラメータの入力プロンプト
     if mode in ["1", "2"]:
         print("\nSelect target Piko branch:")
         print("  [1] Stable (Default)")
@@ -515,10 +493,8 @@ def main():
                 else:
                     print("  -> [!] Invalid choice. Please enter a valid number.")
         else:
-            # GitHub CLI（gh）コマンド実行失敗時の代替入力処理
             target_upload_tag = input("Enter target tag manually (e.g., v3.5.0) or leave empty to skip: ").strip()
 
-    # 実行モードに応じた、事前の作業領域初期化処理
     cleanup_workspace(clean_bins=(mode == "1"), clean_outputs=(mode in ["1", "2"]))
 
     if not os.path.exists(BASE_APK_DIR):
@@ -526,9 +502,6 @@ def main():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
-    # ---------------------------------------------------------
-    # 第1段階および第2段階: 必須ツール群およびパッチファイルの取得処理
-    # ---------------------------------------------------------
     if mode == "1":
         print("\n[STEP 1] Fetching Piko resources...")
         piko_tag = get_latest_piko_tag(is_pre)
@@ -545,9 +518,6 @@ def main():
         next_action = "Signature" if mode == "3" else "Upload"
         print(f"\n[STEP 1-3] Skipped. Proceeding directly to {next_action} processing.")
 
-    # ---------------------------------------------------------
-    # 第3段階: 対象APK群に対するパッチ適用およびビルド処理
-    # ---------------------------------------------------------
     if mode in ["1", "2"]:
         base_files = glob.glob(os.path.join(BASE_APK_DIR, "*"))
         print(f"\n[DEBUG] Found {len(base_files)} file(s) in {BASE_APK_DIR}.")
@@ -563,7 +533,6 @@ def main():
             print(f"\n  -> [DEBUG] Inspecting file: {filename}")
             version_str = extract_version_from_filename(filename)
             
-            # 対象パッケージ: Twitter / X 用のビルドシーケンス
             if "twitter" in filename or "x-" in filename or "x_" in filename:
                 print(f"\n[STEP 3] Processing Twitter/X: {filename} (Detected v{version_str})")
                 is_apkm = filename.endswith(".apkm") or filename.endswith(".apks") or filename.endswith(".xapk")
@@ -583,7 +552,6 @@ def main():
                     merge_apk(working_file)
                     if os.path.exists(working_file): os.remove(working_file)
                     
-                    # 結合済み未パッチAPKのバックアップ保存処理
                     if os.path.exists(target_merged):
                         base_name = os.path.splitext(filename)[0]
                         merged_out = os.path.join(OUTPUT_DIR, f"{base_name}_merged_unpatched.apk")
@@ -594,18 +562,15 @@ def main():
                 
                 if os.path.exists(target_merged):
                     
-                    # =============== 中間パッチ（Shim）適用シーケンス ===============
                     if is_version_greater_than(version_str, "11.88") and is_version_less_than(version_str, "12.5"):
                         print(f"  -> [INFO] Twitter v{version_str} requires x-shim (11.88 < v < 12.5). Applying x-shim first...")
                         shim_mpp = fetch_x_shim()
                         if shim_mpp:
                             target_merged = apply_shim(cli_jar, shim_mpp, target_merged)
-                    # ====================================================
 
                     print("  -> Building Twitter/X variants...")
                     common_includes = get_target_patches(cli_jar, patch_mpp, "com.twitter.android", excludes=["Bring back twitter", "Dynamic color"])
                     
-                    # 生成対象となるバリアント構成の定義リスト
                     twitter_variants = [
                         {
                             "name": "X (Material You)",
@@ -647,7 +612,6 @@ def main():
                         
                     print(f"  -> [SUCCESS] Twitter/X variants saved to '{OUTPUT_DIR}'.")
 
-            # 対象パッケージ: Instagram 用のビルドシーケンス
             elif "insta" in filename:
                 print(f"\n[STEP 3] Processing Instagram: {filename} (Detected v{version_str})")
                 insta_merged = "insta_base_merged.apk"
@@ -667,7 +631,6 @@ def main():
                     merge_apk(working_file)
                     if os.path.exists(working_file): os.remove(working_file)
                     
-                    # 結合済み未パッチAPKのバックアップ保存処理
                     if os.path.exists(insta_merged):
                         base_name = os.path.splitext(filename)[0]
                         merged_out = os.path.join(OUTPUT_DIR, f"{base_name}_merged_unpatched.apk")
@@ -683,16 +646,15 @@ def main():
                         print(f"  -> [SUCCESS] Instagram variant saved to '{OUTPUT_DIR}'.")
 
     # ---------------------------------------------------------
-    # 第4段階: 出力ディレクトリ内のAPKに対する構造修復、アライメント最適化、および暗号化署名処理
+    # 署名処理
     # ---------------------------------------------------------
     signed_assets = []
     target_apks = glob.glob(os.path.join(OUTPUT_DIR, "*.apk"))
     
     if mode in ["1", "2", "3"]:
-        print("\n[STEP 4] Cleaning, Aligning, and Signing APKs in 'output_apks' folder...")
+        print("\n[STEP 4] Aligning and Signing APKs in 'output_apks' folder (ZIP cleanup skipped)...")
         if target_apks:
             
-            # 静的型解析における型推論エラーを回避するためのアサーション
             assert APKSIGNER_PATH is not None
             
             ZIPALIGN_PATH = APKSIGNER_PATH.replace("apksigner.bat", "zipalign.exe")
@@ -705,29 +667,13 @@ def main():
                 sys.exit(1)
                 
             for apk_path in target_apks:
-                # 処理途中で生成された一時ファイル（中間生成物）を除外対象とする
                 if apk_path.endswith(".clean.apk") or apk_path.endswith(".aligned.apk") or apk_path.endswith(".signed.apk"):
                     continue
                     
                 print(f"\n  -> Processing {os.path.basename(apk_path)} ...")
                 
-                # 1. ZIPアーカイブ構造の整合性修復（META-INFディレクトリの削除処理）
-                print(f"     [1/3] Cleaning ZIP structure (Removing META-INF)...")
-                temp_clean = apk_path + ".clean.apk"
-                try:
-                    with zipfile.ZipFile(apk_path, 'r') as zin:
-                        with zipfile.ZipFile(temp_clean, 'w') as zout:
-                            for item in zin.infolist():
-                                if item.filename.startswith("META-INF/"):
-                                    continue
-                                zout.writestr(item, zin.read(item.filename))
-                    os.replace(temp_clean, apk_path)
-                except Exception as e:
-                    print(f"     [WARNING] Failed to clean ZIP structure: {e}")
-                    if os.path.exists(temp_clean): os.remove(temp_clean)
-
-                # 2. Zipalignによるメモリアライメントの最適化処理
-                print(f"     [2/3] Zipaligning...")
+                # Zipalign（メモリアライメント）
+                print(f"     [1/2] Zipaligning...")
                 temp_aligned = apk_path + ".aligned.apk"
                 align_cmd = [ZIPALIGN_PATH, "-p", "-f", "4", apk_path, temp_aligned]
                 try:
@@ -740,8 +686,8 @@ def main():
                 except Exception as e:
                     print(f"     [WARNING] Zipalign execution error: {e}")
 
-                # 3. apksignerを用いたデジタル署名の付与処理
-                print(f"     [3/3] Signing with apksigner...")
+                # 署名
+                print(f"     [2/2] Signing with apksigner...")
                 temp_signed = apk_path + ".signed.apk"
                 cmd = [
                     APKSIGNER_PATH, "sign",
@@ -763,7 +709,6 @@ def main():
                 signed_assets.append(apk_path)
                 print(f"     [SUCCESS] Finished processing {os.path.basename(apk_path)}!")
             
-            # apksignerが生成した不要な .idsig ファイルを削除
             print("\n  -> Cleaning up signature intermediate files (*.idsig)...")
             for idsig_file in glob.glob(os.path.join(OUTPUT_DIR, "*.idsig")):
                 try: os.remove(idsig_file)
@@ -783,13 +728,8 @@ def main():
         else:
             print(f"  -> [INFO] No APK files found in '{OUTPUT_DIR}' to upload.")
 
-    # 最終終了処理: 作業用の一時ファイルおよびディレクトリの確定削除
     cleanup_workspace(clean_bins=True, clean_outputs=False)
 
-    # ---------------------------------------------------------
-    # 第5段階: GitHubリポジトリへのリリース作成および成果物のアップロード処理
-    # ---------------------------------------------------------
-    # アップロード対象リストより、結合済み未パッチAPKファイルを除外するフィルタリング処理
     assets_to_upload = [apk for apk in signed_assets if "_merged_unpatched" not in apk]
 
     if mode in ["1", "2"] and signed_assets:
