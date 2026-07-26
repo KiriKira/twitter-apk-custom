@@ -74,6 +74,8 @@ jobs:
 
       - name: Build custom Piko patches
         working-directory: piko
+        env:
+          GITHUB_TOKEN: ${{ secrets.PIKO_REPO_TOKEN }}
         run: ./gradlew clean buildAndroid
 
       - name: Stage Piko patch bundle
