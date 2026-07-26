@@ -50,6 +50,8 @@ def prepare_inputs():
     base_apk_url = env("BASE_APK_URL")
     if base_apk_url:
         filename = os.path.basename(base_apk_url.split("?")[0]) or "base.apk"
+        if not filename.lower().endswith((".apk", ".apkm", ".apks", ".xapk")):
+            filename = "base.xapk"
         base_apk_path = download_if_needed(base_apk_url, os.path.join(BASE_APK_DIR, filename))
 
     if not base_apk_path:
