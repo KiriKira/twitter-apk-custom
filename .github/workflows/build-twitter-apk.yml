@@ -60,7 +60,9 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Android build tools
-        run: sdkmanager "build-tools;35.0.0"
+        run: |
+          sdkmanager "build-tools;35.0.0"
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -80,7 +82,9 @@ jobs:
           cp piko/patches/build/libs/*.mpp bins/patches.mpp
 
       - name: Decode signing keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > ks_pkcs12.keystore
 
       - name: Build patched APK
