@@ -48,7 +48,7 @@ jobs:
           repository: ${{ inputs.piko_repository }}
           ref: ${{ inputs.piko_ref }}
           path: piko
-          token: ${{ secrets.PIKO_REPO_TOKEN || github.token }}
+          token: ${{ secrets.PIKO_REPO_TOKEN }}
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -85,18 +85,23 @@ jobs:
         if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > ks_pkcs12.keystore
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > ks_pkcs12.keystore
 
       - name: Build patched APK
         env:
-          BASE_APK_URL: ${{ inputs.base_apk_url || secrets.BASE_APK_URL }}
+          BASE_APK_URL: ${{ inputs.base_apk_url }}
+          DEFAULT_BASE_APK_URL: ${{ secrets.BASE_APK_URL }}
           PIKO_MPP_PATH: bins/patches.mpp
           BUILD_VARIANTS: ${{ inputs.build_variants }}
           SIGNING_KEYSTORE_PATH: ks_pkcs12.keystore
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: python build_ci.py
+        run: |
+          if [ -z "$BASE_APK_URL" ]; then
+            export BASE_APK_URL="$DEFAULT_BASE_APK_URL"
+          fi
+          python build_ci.py
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v6
@@ -108,6 +113,6 @@ jobs:
         if: ${{ inputs.create_release }}
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ inputs.release_tag || format('piko-custom-{0}', github.run_number) }}
+          tag_name: ${{ inputs.release_tag }}
           files: output_apks/*.apk
           fail_on_unmatched_files: true
