@@ -10,7 +10,7 @@ on:
       piko_repository:
         description: "Private Piko repository to build patches from"
         required: true
-        default: "OWNER/piko"
+        default: "KiriKira/piko-custom"
         type: string
       piko_ref:
         description: "Branch, tag, or SHA in the private Piko repository"
