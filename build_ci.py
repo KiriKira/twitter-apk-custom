@@ -115,7 +115,7 @@ def selected_variants(version):
 
 def prepare_base_apk(base_apk_path):
     filename = os.path.basename(base_apk_path).lower()
-    version = extract_version_from_filename(filename)
+    version = env("BASE_APK_VERSION") or extract_version_from_filename(filename)
     is_bundle = filename.endswith((".apkm", ".apks", ".xapk"))
     working_file = "big_file.apkm" if is_bundle else "big_file_merged.apk"
 

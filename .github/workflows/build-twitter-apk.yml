@@ -7,6 +7,10 @@ on:
         description: "Direct URL for the unpatched X/Twitter APK, APKM, APKS, or XAPK"
         required: false
         type: string
+      base_apk_version:
+        description: "Version label used for output filenames, for example 12.0.0-release.0"
+        required: false
+        type: string
       piko_repository:
         description: "Private Piko repository to build patches from"
         required: true
@@ -92,6 +96,7 @@ jobs:
       - name: Build patched APK
         env:
           BASE_APK_URL: ${{ inputs.base_apk_url }}
+          BASE_APK_VERSION: ${{ inputs.base_apk_version }}
           DEFAULT_BASE_APK_URL: ${{ secrets.BASE_APK_URL }}
           PIKO_MPP_PATH: bins/patches.mpp
           BUILD_VARIANTS: ${{ inputs.build_variants }}
