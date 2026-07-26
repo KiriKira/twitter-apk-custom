@@ -1,0 +1,109 @@
+name: Build Twitter APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_apk_url:
+        description: "Direct URL for the unpatched X/Twitter APK, APKM, APKS, or XAPK"
+        required: false
+        type: string
+      piko_repository:
+        description: "Private Piko repository to build patches from"
+        required: true
+        default: "OWNER/piko"
+        type: string
+      piko_ref:
+        description: "Branch, tag, or SHA in the private Piko repository"
+        required: true
+        default: "main"
+        type: string
+      build_variants:
+        description: "Comma-separated: x,x-material,twitter,twitter-material,all"
+        required: true
+        default: "x"
+        type: string
+      create_release:
+        description: "Create or update a GitHub Release"
+        required: true
+        default: false
+        type: boolean
+      release_tag:
+        description: "Release tag, used only when create_release=true"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout builder
+        uses: actions/checkout@v7
+
+      - name: Checkout custom Piko
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.piko_repository }}
+          ref: ${{ inputs.piko_ref }}
+          path: piko
+          token: ${{ secrets.PIKO_REPO_TOKEN || github.token }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build tools
+        run: sdkmanager "build-tools;35.0.0"
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build custom Piko patches
+        working-directory: piko
+        run: ./gradlew clean buildAndroid
+
+      - name: Stage Piko patch bundle
+        run: |
+          mkdir -p bins
+          cp piko/patches/build/libs/*.mpp bins/patches.mpp
+
+      - name: Decode signing keystore
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > ks_pkcs12.keystore
+
+      - name: Build patched APK
+        env:
+          BASE_APK_URL: ${{ inputs.base_apk_url || secrets.BASE_APK_URL }}
+          PIKO_MPP_PATH: bins/patches.mpp
+          BUILD_VARIANTS: ${{ inputs.build_variants }}
+          SIGNING_KEYSTORE_PATH: ks_pkcs12.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: python build_ci.py
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: patched-twitter-apk
+          path: output_apks/*.apk
+
+      - name: Publish release
+        if: ${{ inputs.create_release }}
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.release_tag || format('piko-custom-{0}', github.run_number) }}
+          files: output_apks/*.apk
+          fail_on_unmatched_files: true
