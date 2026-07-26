@@ -23,7 +23,8 @@ from utils import merge_apk
 
 
 def env(name, default=""):
-    return os.environ.get(name, default).strip()
+    value = os.environ.get(name, "").strip()
+    return value if value else default
 
 
 def ensure_dirs():
