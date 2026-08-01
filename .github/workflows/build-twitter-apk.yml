@@ -11,6 +11,10 @@ on:
         description: "Version label used for output filenames, for example 12.0.0-release.0"
         required: false
         type: string
+      version_code_offset:
+        description: "Positive versionCode offset for direct APK updates; defaults to this Actions run number"
+        required: false
+        type: string
       piko_repository:
         description: "Private Piko repository to build patches from"
         required: true
@@ -97,6 +101,7 @@ jobs:
         env:
           BASE_APK_URL: ${{ inputs.base_apk_url }}
           BASE_APK_VERSION: ${{ inputs.base_apk_version }}
+          VERSION_CODE_OFFSET: ${{ inputs.version_code_offset || github.run_number }}
           DEFAULT_BASE_APK_URL: ${{ secrets.BASE_APK_URL }}
           PIKO_MPP_PATH: bins/patches.mpp
           BUILD_VARIANTS: ${{ inputs.build_variants }}
@@ -122,4 +127,5 @@ jobs:
         with:
           tag_name: ${{ inputs.release_tag }}
           files: output_apks/*.apk
+          overwrite_files: false
           fail_on_unmatched_files: true

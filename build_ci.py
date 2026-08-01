@@ -1,5 +1,6 @@
 import glob
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -233,10 +234,72 @@ def sign_outputs(apks):
     return signed
 
 
+def apply_version_revision(apks):
+    offset_text = env("VERSION_CODE_OFFSET")
+    if not offset_text:
+        return apks
+
+    try:
+        offset = int(offset_text)
+    except ValueError as error:
+        raise RuntimeError("VERSION_CODE_OFFSET must be a positive integer") from error
+    if offset <= 0:
+        raise RuntimeError("VERSION_CODE_OFFSET must be a positive integer")
+
+    apkeditor = os.path.join(BINS_DIR, "apkeditor.jar")
+    updated = []
+    for apk_path in apks:
+        decoded_dir = apk_path + ".versioned"
+        rebuilt_apk = apk_path + ".versioned.apk"
+        if os.path.exists(decoded_dir):
+            shutil.rmtree(decoded_dir)
+        if os.path.exists(rebuilt_apk):
+            os.remove(rebuilt_apk)
+
+        subprocess.run(
+            ["java", "-jar", apkeditor, "d", "-dex", "-i", apk_path, "-o", decoded_dir],
+            check=True,
+        )
+        manifest_path = os.path.join(decoded_dir, "AndroidManifest.xml")
+        with open(manifest_path, "r", encoding="utf-8") as manifest_file:
+            manifest = manifest_file.read()
+
+        version_code_pattern = r'(android:versionCode\s*=\s*")[^"]+("\s*)'
+        version_code_match = re.search(version_code_pattern, manifest)
+        if not version_code_match:
+            raise RuntimeError(f"Could not find android:versionCode in {apk_path}")
+        version_code = int(version_code_match.group(0).split('"')[1], 0) + offset
+        if version_code > 2147483647:
+            raise RuntimeError("Revised versionCode exceeds Android's maximum value")
+        manifest = re.sub(
+            version_code_pattern,
+            lambda match: match.group(1) + str(version_code) + match.group(2),
+            manifest,
+            count=1,
+        )
+        manifest = re.sub(
+            r'(android:versionName\s*=\s*")([^"]+)("\s*)',
+            lambda match: match.group(1) + match.group(2) + f"-piko.{offset}" + match.group(3),
+            manifest,
+            count=1,
+        )
+        with open(manifest_path, "w", encoding="utf-8", newline="") as manifest_file:
+            manifest_file.write(manifest)
+
+        subprocess.run(
+            ["java", "-jar", apkeditor, "b", "-f", "-i", decoded_dir, "-o", rebuilt_apk],
+            check=True,
+        )
+        os.replace(rebuilt_apk, apk_path)
+        shutil.rmtree(decoded_dir)
+        updated.append(apk_path)
+    return updated
+
+
 def main():
     base_apk_path, patch_mpp_path = prepare_inputs()
     outputs = build_variants(base_apk_path, patch_mpp_path)
-    signed = sign_outputs(outputs)
+    signed = sign_outputs(apply_version_revision(outputs))
     print("Built APKs:")
     for apk_path in signed:
         print(f"  {apk_path}")
