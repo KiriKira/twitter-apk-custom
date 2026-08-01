@@ -277,6 +277,23 @@ def apply_version_revision(apks):
             manifest,
             count=1,
         )
+        version_code_major_pattern = r'(android:versionCodeMajor\s*=\s*")[^"]+("\s*)'
+        if re.search(version_code_major_pattern, manifest):
+            manifest = re.sub(
+                version_code_major_pattern,
+                lambda match: match.group(1) + "1" + match.group(2),
+                manifest,
+                count=1,
+            )
+        else:
+            manifest, namespace_replacements = re.subn(
+                r'(xmlns:android\s*=\s*"[^"]+")',
+                lambda match: match.group(1) + ' android:versionCodeMajor="1"',
+                manifest,
+                count=1,
+            )
+            if namespace_replacements != 1:
+                raise RuntimeError(f"Could not add android:versionCodeMajor to {apk_path}")
         manifest = re.sub(
             r'(android:versionName\s*=\s*")([^"]+)("\s*)',
             lambda match: match.group(1) + match.group(2) + f"-piko.{offset}" + match.group(3),
@@ -292,6 +309,7 @@ def apply_version_revision(apks):
         )
         os.replace(rebuilt_apk, apk_path)
         shutil.rmtree(decoded_dir)
+        print(f"Updated {apk_path}: versionCode={version_code}, versionCodeMajor=1")
         updated.append(apk_path)
     return updated
 
