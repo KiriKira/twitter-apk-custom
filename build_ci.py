@@ -166,7 +166,7 @@ def build_variants(base_apk_path, patch_mpp_path):
             target_merged,
             variant["output"],
             common_includes + variant["includes"],
-            variant["excludes"],
+            ["Change version code", *variant["excludes"]],
         )
         outputs.append(output)
     return outputs
