@@ -155,7 +155,7 @@ def build_variants(base_apk_path, patch_mpp_path):
         cli_jar,
         patch_mpp_path,
         "com.twitter.android",
-        excludes=["Bring back twitter", "Dynamic color"],
+        excludes=["Bring back twitter", "Change version code", "Dynamic color"],
     )
 
     outputs = []
