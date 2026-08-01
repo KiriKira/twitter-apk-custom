@@ -240,10 +240,10 @@ def apply_version_revision(apks):
         return apks
 
     try:
-        offset = int(offset_text)
+        revision = int(offset_text)
     except ValueError as error:
         raise RuntimeError("VERSION_CODE_OFFSET must be a positive integer") from error
-    if offset <= 0:
+    if revision <= 0 or revision > 2147483647:
         raise RuntimeError("VERSION_CODE_OFFSET must be a positive integer")
 
     apkeditor = os.path.join(BINS_DIR, "apkeditor.jar")
@@ -268,9 +268,8 @@ def apply_version_revision(apks):
         version_code_match = re.search(version_code_pattern, manifest)
         if not version_code_match:
             raise RuntimeError(f"Could not find android:versionCode in {apk_path}")
-        version_code = int(version_code_match.group(0).split('"')[1], 0) + offset
-        if version_code > 2147483647:
-            raise RuntimeError("Revised versionCode exceeds Android's maximum value")
+        # Preserve the old Piko value for installers limited to 32-bit codes.
+        version_code = 2147483647
         manifest = re.sub(
             version_code_pattern,
             lambda match: match.group(1) + str(version_code) + match.group(2),
@@ -281,14 +280,14 @@ def apply_version_revision(apks):
         if re.search(version_code_major_pattern, manifest):
             manifest = re.sub(
                 version_code_major_pattern,
-                lambda match: match.group(1) + "1" + match.group(2),
+                lambda match: match.group(1) + str(revision) + match.group(2),
                 manifest,
                 count=1,
             )
         else:
             manifest, namespace_replacements = re.subn(
                 r'(xmlns:android\s*=\s*"[^"]+")',
-                lambda match: match.group(1) + ' android:versionCodeMajor="1"',
+                lambda match: match.group(1) + f' android:versionCodeMajor="{revision}"',
                 manifest,
                 count=1,
             )
@@ -296,7 +295,7 @@ def apply_version_revision(apks):
                 raise RuntimeError(f"Could not add android:versionCodeMajor to {apk_path}")
         manifest = re.sub(
             r'(android:versionName\s*=\s*")([^"]+)("\s*)',
-            lambda match: match.group(1) + match.group(2) + f"-piko.{offset}" + match.group(3),
+            lambda match: match.group(1) + match.group(2) + f"-piko.{revision}" + match.group(3),
             manifest,
             count=1,
         )
@@ -309,7 +308,7 @@ def apply_version_revision(apks):
         )
         os.replace(rebuilt_apk, apk_path)
         shutil.rmtree(decoded_dir)
-        print(f"Updated {apk_path}: versionCode={version_code}, versionCodeMajor=1")
+        print(f"Updated {apk_path}: versionCode={version_code}, versionCodeMajor={revision}")
         updated.append(apk_path)
     return updated
 

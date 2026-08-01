@@ -25,7 +25,7 @@ If `base_apk_url` is omitted, set a repository secret named `BASE_APK_URL`.
 
 ## Releases And Updates
 
-Every custom patch build excludes Piko's `Change version code` patch, then rewrites the APK version fields before signing: the Android `versionCode` is increased by `version_code_offset`, `versionCodeMajor` is set to `1`, and the version name gains a `-piko.<offset>` suffix. The major version field keeps these builds newer than earlier Piko builds that used Android's maximum 32-bit version code, while the regular version code remains monotonically increasing between custom builds.
+Every custom patch build excludes Piko's `Change version code` patch, then rewrites the APK version fields before signing: the Android `versionCode` remains at the legacy Piko maximum (`2147483647`), the positive `version_code_offset` is written to `versionCodeMajor`, and the version name gains a `-piko.<offset>` suffix. Android compares the combined long version code, so each Actions run is newer than the previous one. Keeping the 32-bit value at the legacy maximum also lets installers that only inspect `versionCode` upgrade an older Piko APK instead of rejecting it as a downgrade.
 
 Use a new release tag for every publish. The release action is configured not to overwrite an existing asset.
 
