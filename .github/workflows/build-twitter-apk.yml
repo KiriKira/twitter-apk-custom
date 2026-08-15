@@ -1,6 +1,9 @@
 name: Build Twitter APK
 
 on:
+  # Poll the custom Piko source: every new main commit gets one release.
+  schedule:
+    - cron: "17 */6 * * *"
   workflow_dispatch:
     inputs:
       base_apk_url:
@@ -44,7 +47,46 @@ permissions:
   contents: write
 
 jobs:
+  check-upstream:
+    name: Check custom Piko upstream
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.state.outputs.release_tag }}
+      should_build: ${{ steps.state.outputs.should_build }}
+      piko_sha: ${{ steps.state.outputs.piko_sha }}
+    steps:
+      - name: Checkout current custom Piko source
+        uses: actions/checkout@v7
+        with:
+          repository: KiriKira/piko-custom
+          ref: main
+          path: piko
+          token: ${{ secrets.PIKO_REPO_TOKEN }}
+
+      - name: Skip source revisions that already have a release
+        id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(git -C piko rev-parse --short=12 HEAD)"
+          tag="piko-custom-${sha}"
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${tag}")"
+          case "$status" in
+            200) should_build=false ;;
+            404) should_build=true ;;
+            *) echo "Unable to check release tag $tag (HTTP $status)" >&2; exit 1 ;;
+          esac
+          echo "piko_sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "should_build=$should_build" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: check-upstream
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.check-upstream.outputs.should_build == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout builder
@@ -53,8 +95,8 @@ jobs:
       - name: Checkout custom Piko
         uses: actions/checkout@v7
         with:
-          repository: ${{ inputs.piko_repository }}
-          ref: ${{ inputs.piko_ref }}
+          repository: ${{ github.event_name == 'schedule' && 'KiriKira/piko-custom' || inputs.piko_repository }}
+          ref: ${{ github.event_name == 'schedule' && 'main' || inputs.piko_ref }}
           path: piko
           token: ${{ secrets.PIKO_REPO_TOKEN }}
 
@@ -122,10 +164,13 @@ jobs:
           path: output_apks/*.apk
 
       - name: Publish release
-        if: ${{ inputs.create_release }}
+        if: ${{ github.event_name == 'schedule' || inputs.create_release }}
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ inputs.release_tag }}
+          tag_name: ${{ github.event_name == 'schedule' && needs.check-upstream.outputs.release_tag || inputs.release_tag }}
+          name: ${{ github.event_name == 'schedule' && format('Piko custom {0}', needs.check-upstream.outputs.piko_sha) || inputs.release_tag }}
+          body: |
+            Automated build from custom Piko commit `${{ needs.check-upstream.outputs.piko_sha }}`.
           files: output_apks/*.apk
           overwrite_files: false
           fail_on_unmatched_files: true

@@ -1,13 +1,18 @@
 # Twitter/X & Instagram APK (Piko Patches) - Local Builder
 
-[![Stable Release](https://img.shields.io/github/v/release/monsivamon/twitter-apk?label=Stable&color=success)](https://github.com/monsivamon/twitter-apk/releases/latest)
-[![Pre-Release](https://img.shields.io/github/v/release/monsivamon/twitter-apk?include_prereleases&label=Pre-Release&color=orange)](https://github.com/monsivamon/twitter-apk/releases)
+[![Latest Release](https://img.shields.io/github/v/release/KiriKira/twitter-apk-custom?label=Latest&color=success)](https://github.com/KiriKira/twitter-apk-custom/releases/latest)
+[![Build workflow](https://img.shields.io/github/actions/workflow/status/KiriKira/twitter-apk-custom/build-twitter-apk.yml?label=Build)](https://github.com/KiriKira/twitter-apk-custom/actions/workflows/build-twitter-apk.yml)
 
-A Python-based local build system for applying [Piko](https://github.com/crimera/piko) patches to Twitter/X and Instagram. 
-Due to upstream tooling changes and stability requirements, this project has transitioned from an automated CI pipeline to a **reliable manual/local builder**.
+A Python-based build system for applying the private `KiriKira/piko-custom` patch set to X/Twitter.
+
+## Automated upstream builds
+
+`Build Twitter APK` polls `KiriKira/piko-custom` `main` every six hours. When its commit changes, GitHub Actions builds the configured X base APK and publishes one GitHub Release named after that exact upstream commit. Repeated polls do not rebuild an already released revision.
+
+The scheduled build uses the existing repository secrets: `PIKO_REPO_TOKEN`, `BASE_APK_URL`, `ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD`. `BASE_APK_URL` must remain a direct downloadable, unpatched X/Twitter APK/APKM/APKS/XAPK URL. You can still start a manual build from the **Actions** tab to override the source, variants, or release tag.
 
 ## 📦 About Releases
-APKs available on the Releases page of this repository are manually updated and uploaded by the author (monsivamon) by running `main_manual.py` on their local machine. Automated updates via GitHub Actions (CI) are currently suspended.
+APKs on this repository's Releases page are built by GitHub Actions whenever a new `KiriKira/piko-custom` `main` revision is detected. Manual/local building remains available below.
 
 ## 🛠️ How to Build Locally (and Upload to Your Repo)
 
