@@ -57,18 +57,6 @@ jobs:
       - name: Checkout builder
         uses: actions/checkout@v7
 
-      - name: Probe APK sources (temporary debug)
-        run: |
-          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
-          for url in \
-            'https://apkpure.com/x-twitter/com.twitter.android/versions' \
-            'https://d.apkpure.net/b/XAPK/com.twitter.android?versionCode=312163000' \
-            'https://apkcombo.com/x-twitter/com.twitter.android/download/apk' \
-            'https://twitter.en.uptodown.com/android/download'; do
-            code="$(curl --silent --max-time 30 --location --output /dev/null --write-out '%{http_code}' -A "$UA" "$url" || echo ERR)"
-            printf '%s %s\n' "$code" "$url"
-          done
-
       - name: Query APKPure for the latest stable X release
         id: resolve
         run: |
