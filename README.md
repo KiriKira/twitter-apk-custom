@@ -9,7 +9,7 @@ A Python-based build system for applying the private `KiriKira/piko-custom` patc
 
 `Build Twitter APK` polls `KiriKira/piko-custom` `main` every six hours. When its commit changes, GitHub Actions builds the configured X base APK and publishes one GitHub Release named after that exact upstream commit. Repeated polls do not rebuild an already released revision.
 
-The scheduled build uses the existing repository secrets: `PIKO_REPO_TOKEN`, `BASE_APK_URL`, `ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD`. `BASE_APK_URL` must remain a direct downloadable, unpatched X/Twitter APK/APKM/APKS/XAPK URL. You can still start a manual build from the **Actions** tab to override the source, variants, or release tag.
+The scheduled build uses the existing repository secrets: `PIKO_REPO_TOKEN`, `ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD`. The base APK is resolved automatically: the workflow queries APKPure for the latest stable X release before every build (`resolve_base_apk.py`). You can still start a manual build from the **Actions** tab to override the source, variants, base APK URL, or release tag.
 
 ## 📦 About Releases
 APKs on this repository's Releases page are built by GitHub Actions whenever a new `KiriKira/piko-custom` `main` revision is detected. Manual/local building remains available below.
