@@ -1,9 +1,6 @@
 name: Build Twitter APK
 
 on:
-  # Poll the custom Piko source: every new main commit gets one release.
-  schedule:
-    - cron: "17 */6 * * *"
   workflow_dispatch:
     inputs:
       base_apk_url:
@@ -47,27 +44,6 @@ permissions:
   contents: write
 
 jobs:
-  resolve-base-apk:
-    name: Resolve latest X base APK
-    runs-on: ubuntu-latest
-    outputs:
-      base_apk_url: ${{ steps.resolve.outputs.base_apk_url }}
-      base_apk_version: ${{ steps.resolve.outputs.base_apk_version }}
-    steps:
-      - name: Checkout builder
-        uses: actions/checkout@v7
-
-      - name: Query APKPure for the latest stable X release
-        id: resolve
-        run: |
-          set -euo pipefail
-          resolved="$(python3 resolve_base_apk.py)"
-          base_apk_url="$(printf '%s\n' "$resolved" | head -n1)"
-          base_apk_version="$(printf '%s\n' "$resolved" | tail -n1)"
-          echo "Resolved X $base_apk_version -> $base_apk_url"
-          echo "base_apk_url=$base_apk_url" >> "$GITHUB_OUTPUT"
-          echo "base_apk_version=$base_apk_version" >> "$GITHUB_OUTPUT"
-
   check-upstream:
     name: Check custom Piko upstream
     runs-on: ubuntu-latest
@@ -106,7 +82,7 @@ jobs:
           echo "should_build=$should_build" >> "$GITHUB_OUTPUT"
 
   build:
-    needs: [check-upstream, resolve-base-apk]
+    needs: check-upstream
     if: ${{ github.event_name == 'workflow_dispatch' || needs.check-upstream.outputs.should_build == 'true' }}
     runs-on: ubuntu-latest
     steps:
@@ -162,8 +138,8 @@ jobs:
 
       - name: Build patched APK
         env:
-          BASE_APK_URL: ${{ inputs.base_apk_url || needs.resolve-base-apk.outputs.base_apk_url }}
-          BASE_APK_VERSION: ${{ inputs.base_apk_version || needs.resolve-base-apk.outputs.base_apk_version }}
+          BASE_APK_URL: ${{ inputs.base_apk_url }}
+          BASE_APK_VERSION: ${{ inputs.base_apk_version }}
           VERSION_CODE_OFFSET: ${{ inputs.version_code_offset || github.run_number }}
           DEFAULT_BASE_APK_URL: ${{ secrets.BASE_APK_URL }}
           PIKO_MPP_PATH: bins/patches.mpp
@@ -185,13 +161,10 @@ jobs:
           path: output_apks/*.apk
 
       - name: Publish release
-        if: ${{ github.event_name == 'schedule' || inputs.create_release }}
+        if: ${{ inputs.create_release }}
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.event_name == 'schedule' && needs.check-upstream.outputs.release_tag || inputs.release_tag }}
-          name: ${{ github.event_name == 'schedule' && format('Piko custom {0}', needs.check-upstream.outputs.piko_sha) || inputs.release_tag }}
-          body: |
-            Automated build from custom Piko commit `${{ needs.check-upstream.outputs.piko_sha }}`.
+          tag_name: ${{ inputs.release_tag }}
           files: output_apks/*.apk
           overwrite_files: false
           fail_on_unmatched_files: true
