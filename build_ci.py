@@ -7,6 +7,7 @@ import sys
 import urllib.request
 
 import main_manual
+import env_setup
 from download_bins import download_apkeditor, download_morphe_cli
 from main_manual import (
     BASE_APK_DIR,
@@ -176,7 +177,7 @@ def find_zipalign():
     found = shutil.which("zipalign")
     if found:
         return found
-    apksigner = main_manual.APKSIGNER_PATH
+    apksigner = env_setup.get_apksigner_path()
     if apksigner:
         candidate = os.path.join(os.path.dirname(apksigner), "zipalign")
         if os.name == "nt":
@@ -191,7 +192,7 @@ def sign_outputs(apks):
         print("Skipping signing because SKIP_SIGNING=true")
         return apks
 
-    apksigner = main_manual.APKSIGNER_PATH
+    apksigner = env_setup.get_apksigner_path()
     if not apksigner:
         raise RuntimeError("apksigner was not found")
 
